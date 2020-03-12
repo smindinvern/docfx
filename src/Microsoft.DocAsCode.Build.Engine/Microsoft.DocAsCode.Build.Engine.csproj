@@ -24,4 +24,9 @@
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\docfx.website.themes\default\styles\lunr.min.js" Link="lunr.min.js" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="lunrPrebuild.js" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

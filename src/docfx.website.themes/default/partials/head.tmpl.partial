@@ -16,5 +16,6 @@
   <meta property="docfx:tocrel" content="{{_tocRel}}">
   {{#_noindex}}<meta name="searchOption" content="noindex">{{/_noindex}}
   {{#_enableSearch}}<meta property="docfx:rel" content="{{_rel}}">{{/_enableSearch}}
+  {{#_prebuildSearchIndex}}<meta property="docfx:prebuildsearchindex" content="true">{{/_prebuildSearchIndex}}
   {{#_enableNewTab}}<meta property="docfx:newtab" content="true">{{/_enableNewTab}}
 </head>

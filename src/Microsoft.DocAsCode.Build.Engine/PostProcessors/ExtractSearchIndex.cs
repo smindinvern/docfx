@@ -27,11 +27,19 @@ namespace Microsoft.DocAsCode.Build.Engine
         public string Name => nameof(ExtractSearchIndex);
         public const string IndexFileName = "index.json";
 
+        private bool prebuildSearchIndex;
+
         public ImmutableDictionary<string, object> PrepareMetadata(ImmutableDictionary<string, object> metadata)
         {
             if (!metadata.ContainsKey("_enableSearch"))
             {
                 metadata = metadata.Add("_enableSearch", true);
+            }
+            prebuildSearchIndex = metadata.TryGetValue("_prebuildSearchIndex", out var value) && Equals(value, true);
+            if (prebuildSearchIndex && !CommandUtility.ExistCommand("node"))
+            {
+                Logger.LogInfo("Looks like Node is not installed globally. We depend on Node to prebuild search index.");
+                metadata = metadata.SetItem("_prebuildSearchIndex", false);
             }
             return metadata;
         }
@@ -82,17 +90,43 @@ namespace Microsoft.DocAsCode.Build.Engine
             JsonUtility.Serialize(indexDataFilePath, indexData, Formatting.Indented);
 
             // add index.json to manifest as resource file
+            AddManifest(manifest, PathUtility.MakeRelativePath(outputFolder, indexDataFilePath));
+
+            if (prebuildSearchIndex)
+            {
+                Logger.LogInfo($"Prebuilding search index");
+                var jsFile = Path.Combine(AppContext.BaseDirectory, "lunrPrebuild.js");
+                var preBuildIndexDataFilePath = Path.ChangeExtension(indexDataFilePath, ".map.json");
+
+                // add index.min.json to manifest as resource file
+                AddManifest(manifest, PathUtility.MakeRelativePath(outputFolder, preBuildIndexDataFilePath));
+                var exitCode = CommandUtility.RunCommand(
+                    new CommandInfo { Name = "node", Arguments = $"\"{jsFile}\" \"{indexDataFilePath}\" \"{preBuildIndexDataFilePath}\"" },
+                    Console.Out,
+                    Console.Error);
+
+                if (exitCode != 0)
+                {
+                    Logger.LogError($"Failed to create prebuild search index.");
+                }
+            }
+
+            return manifest;
+        }
+
+        private static ManifestItem AddManifest(Manifest manifest, string relativePath)
+        {
             var manifestItem = new ManifestItem
             {
                 DocumentType = "Resource",
             };
             manifestItem.OutputFiles.Add("resource", new OutputFileInfo
             {
-                RelativePath = PathUtility.MakeRelativePath(outputFolder, indexDataFilePath),
+                RelativePath = relativePath,
             });
 
             manifest.Files?.Add(manifestItem);
-            return manifest;
+            return manifestItem;
         }
 
         internal SearchIndexItem ExtractItem(HtmlDocument html, string href)

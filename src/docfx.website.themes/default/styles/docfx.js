@@ -126,6 +126,7 @@ $(function () {
     if (typeof relHref === 'undefined') {
       return;
     }
+
     try {
       var worker = new Worker(relHref + 'styles/search-worker.js');
       if (!worker && !window.worker) {
@@ -204,7 +205,7 @@ $(function () {
     }
 
     function webWorkerSearch() {
-      console.log("using Web Worker");
+      console.log("using Web Worker search");
       var indexReady = $.Deferred();
 
       worker.onmessage = function (oEvent) {
@@ -218,6 +219,9 @@ $(function () {
             break;
         }
       }
+
+      var prebuildIndex = ($("meta[property='docfx:prebuildsearchindex']").attr("content") === "true");
+      worker.postMessage({ init: { prebuildIndex } });
 
       indexReady.promise().done(function () {
         $("body").bind("queryReady", function () {

@@ -30,7 +30,10 @@
   <meta name="searchOption" content="noindex">
   {%- endif -%}
   {%- if _enableSearch -%}
-  <meta property="docfx:rel" content="{{_rel}}">
+  <meta property="docfx:rel" content="true">
+  {%- endif -%}
+  {%- if _prebuildSearchIndex -%}
+  <meta property="docfx:prebuildsearchindex" content="{{_rel}}">
   {%- endif -%}
   {%- if _enableNewTab -%}
   <meta property="docfx:newtab" content="true">

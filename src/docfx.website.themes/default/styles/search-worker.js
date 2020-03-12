@@ -5,36 +5,57 @@
 
   var stopWords = null;
   var searchData = {};
+  var searchIndex = null;
 
   lunr.tokenizer.separator = /[\s\-\.]+/;
 
-  var stopWordsRequest = new XMLHttpRequest();
-  stopWordsRequest.open('GET', '../search-stopwords.json');
-  stopWordsRequest.onload = function () {
-    if (this.status != 200) {
-      return;
+  function init(options) {
+    lunr.tokenizer.separator = /[\s\-\.]+/;
+
+    var stopWordsRequest = new XMLHttpRequest();
+    stopWordsRequest.open('GET', '../search-stopwords.json');
+    stopWordsRequest.onload = function () {
+      if (this.status != 200) {
+        return;
+      }
+      stopWords = JSON.parse(this.responseText);
+      buildIndex(options);
     }
-    stopWords = JSON.parse(this.responseText);
-    buildIndex();
-  }
-  stopWordsRequest.send();
+    stopWordsRequest.send();
 
-  var searchDataRequest = new XMLHttpRequest();
+    var searchDataRequest = new XMLHttpRequest();
 
-  searchDataRequest.open('GET', '../index.json');
-  searchDataRequest.onload = function () {
-    if (this.status != 200) {
-      return;
+    searchDataRequest.open('GET', '../index.json');
+    searchDataRequest.onload = function () {
+      if (this.status != 200) {
+        return;
+      }
+      searchData = JSON.parse(this.responseText);
+      buildIndex(options);
     }
-    searchData = JSON.parse(this.responseText);
+    searchDataRequest.send();
 
-    buildIndex();
+    if (options.prebuildIndex) {
+      var searchIndexRequest = new XMLHttpRequest();
 
-    postMessage({ e: 'index-ready' });
+      searchIndexRequest.open('GET', '../index.map.json');
+      searchIndexRequest.onload = function () {
+        if (this.status != 200) {
+          return;
+        }
+        searchIndex = JSON.parse(this.responseText);
+        buildIndex(options);
+      }
+      searchIndexRequest.send();
+    }
   }
-  searchDataRequest.send();
 
   onmessage = function (oEvent) {
+    if (oEvent.data.init) {
+      init(oEvent.data.init);
+      return;
+    }
+
     var q = oEvent.data.q;
     var hits = lunrIndex.search(q);
     var results = [];
@@ -45,8 +66,8 @@
     postMessage({ e: 'query-ready', q: q, d: results });
   }
 
-  function buildIndex() {
-    if (stopWords !== null && !isEmpty(searchData)) {
+  function buildIndex(options) {
+    if (stopWords !== null && (!options.prebuildIndex || prebuildIndex != null) && !isEmpty(searchData)) {
       lunrIndex = lunr(function () {
         this.pipeline.remove(lunr.stopWordFilter);
         this.ref('href');
@@ -64,11 +85,12 @@
         this.pipeline.add(docfxStopWordFilter);
         this.searchPipeline.add(docfxStopWordFilter);
       });
+      postMessage({ e: 'index-ready' });
     }
   }
 
   function isEmpty(obj) {
-    if(!obj) return true;
+    if (!obj) return true;
 
     for (var prop in obj) {
       if (obj.hasOwnProperty(prop))

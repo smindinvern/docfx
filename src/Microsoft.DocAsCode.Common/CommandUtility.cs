@@ -11,7 +11,7 @@ namespace Microsoft.DocAsCode.Common
 
     public static class CommandUtility
     {
-        public static int RunCommand(CommandInfo commandInfo, StreamWriter stdoutWriter = null, StreamWriter stderrWriter = null, int timeoutInMilliseconds = Timeout.Infinite)
+        public static int RunCommand(CommandInfo commandInfo, TextWriter stdoutWriter = null, TextWriter stderrWriter = null, int timeoutInMilliseconds = Timeout.Infinite)
         {
             if (commandInfo == null)
             {
